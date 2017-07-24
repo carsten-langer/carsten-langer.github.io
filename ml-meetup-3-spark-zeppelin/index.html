@@ -1,10 +1,16 @@
 <!doctype html>
-<html>
+<html lang="en">
 	<head>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
 
-		<title>reveal.js</title>
+		<title>3rd Düsseldorf Machine Learning Meetup - Apache Spark/Zeppelin</title>
+
+		<meta name="description" content="Using Apache Spark for Machine Learning">
+		<meta name="author" content="Carsten Langer">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 		<link rel="stylesheet" href="css/reveal.css">
 		<link rel="stylesheet" href="css/theme/black.css">
@@ -24,8 +30,346 @@
 	<body>
 		<div class="reveal">
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+				<section>
+					<h1>Apache Spark Apache Zeppelin</h1>
+					<h3><a href="https://www.meetup.com/de-DE/Dusseldorf-Machine-Learning-Group/events/241840720/">3<small><sup>rd</sup></small> Düsseldorf Machine Learning Meetup</a></h3>
+					<h5>2017-07-26</h5>
+					<p>
+						<small>Created by Carsten Langer</small>
+					</p>
+				</section>
+
+				<section>
+					<h2>Content</h2>
+					<ul>
+						<li><div>VM setup for ML projects using</div><div>Apache Spark/Zeppelin</div></li>
+						<li>Apache Spark APIs</li>
+						<li>References</li>
+						<li>ML tutorial on Spark</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>VM setup</h2>
+					<div>
+						Similar to Vagrant Ubuntu VM from <a href="https://www.meetup.com/de-DE/Dusseldorf-Machine-Learning-Group/messages/boards/thread/50929173">2<small><sup>nd</sup></small> meetup</a>.
+					</div>
+					<div>
+						For general advice on Vagrant and VM setup, see there.
+					</div>
+				</section>
+
+				<section>
+					<h2>Prerequisites</h2>
+					<ul>
+						<li><em>Vagrantfile</em> to define the Vagrant box with Apache Zeppelin/Spark</li>
+						<li><em>ZeppelinDemoMachineLearningRegression.json</em>, the Zeppelin notebook with the Spark ML tutorial</li>
+						<li><em>diamonds.csv</em>, the example data for the ML tutorial</li>
+					</ul>
+					Get all 3 files from <a href="https://github.com/carsten-langer/ML-Meetup-3-Spark-Zeppelin">github.com/carsten-langer/ML-Meetup-3-Spark-Zeppelin</a>, e.g. via
+					<pre><code class="Bash" data-trim>
+						$ git clone https://github.com/carsten-langer/ML-Meetup-3-Spark-Zeppelin.git
+					</code></pre>
+				</section>
+
+				<section>
+					<section>
+						<h2>Main changes in <em>Vagrantfile</em></h2>
+						<p>
+							Add 2 ports for Zeppelin and Spark GUI.
+						</p>
+						<pre><code class="Ruby" data-trim>
+							 config.vm.network "forwarded_port", guest: 8080, host: 8080, host_ip: "127.0.0.1" # Apache Zeppelin GUI
+							 config.vm.network "forwarded_port", guest: 4040, host: 4040, host_ip: "127.0.0.1" # Zeppelin's Apache Spark Driver GUI
+						</code></pre>
+					</section>
+					<section>
+						<p>
+							Have nicer name and 3 GiB RAM for the VM.
+						</p>
+						<pre><code class="Ruby" data-trim>
+							config.vm.provider "virtualbox" do |vb|
+							  # Set the name in the VirtualBox GUI
+							  vb.name = "ml-spark"
+							  # Customize the amount of memory on the VM:
+							  vb.memory = "3072"
+							end
+						</code></pre>
+					</section>
+					<section>
+						<p>
+							Break if any command fails during provisioning.
+						</p>
+						<pre><code class="Ruby" data-trim>
+							config.vm.provision "shell", inline: &lt;&lt;-SHELL
+							  # Break if any command fails
+							  set -o errexit
+							  set -o nounset
+							  ...
+						</code></pre>
+					</section>
+					<section>
+						<p>
+							(Optionally) always use latest versions.
+						</p>
+						<pre><code class="Ruby" data-trim>
+							config.vm.provision "shell", inline: &lt;&lt;-SHELL
+							  ...
+							  apt-get --yes upgrade  # comment out if you do not want to always have the latest versions
+							  ...
+						</code></pre>
+						<p>
+							Install JRE.
+						</p>
+						<pre><code class="Ruby" data-trim>
+							config.vm.provision "shell", inline: &lt;&lt;-SHELL
+							  ...
+							  # Get Java
+							  sudo apt-get --yes install openjdk-8-jre-headless
+							  ...
+						</code></pre>
+					</section>
+					<section>
+						<div>
+							Download Zeppelin if not yet provided by host.
+						</div>
+						<div>
+							<em><strong>Always</strong></em> verify checksum for Zeppelin.
+						</div>
+						<div>
+							Install Zeppelin as user <em>ubuntu</em>.
+						</div>
+						<pre><code class="Ruby" data-trim>
+							config.vm.provision "shell", inline: &lt;&lt;-SHELL
+							  ...
+							  # To speed up operations, the zeppelin-0.7.2-bin-all.tgz can be downloaded upfront to the host OS folder which is mapped to the shared folder /vagrant inside the guest machine.
+							  # If it is not already downloaded to /vagrant, download it now to that folder. As this folder is on the host, the downloaded file can be reused even after this box is destroyed.
+							  cd /vagrant
+							  sudo --user=ubuntu wget --no-verbose --timestamping http://www-eu.apache.org/dist/zeppelin/zeppelin-0.7.2/zeppelin-0.7.2-bin-all.tgz
+							  # Always download the checksum, overwriting any previously downloaded file
+							  sudo --user=ubuntu wget --no-verbose --output-document=zeppelin-0.7.2-bin-all.tgz.sha512 https://www.apache.org/dist/zeppelin/zeppelin-0.7.2/zeppelin-0.7.2-bin-all.tgz.sha512
+							  # Compare checksum
+							  sudo --user=ubuntu sha512sum -c zeppelin-0.7.2-bin-all.tgz.sha512
+							  cd /home/ubuntu
+							  sudo --user=ubuntu tar --extract --skip-old-files --file /vagrant/zeppelin-0.7.2-bin-all.tgz
+							  sudo --user=ubuntu ln --symbolic --force /home/ubuntu/zeppelin-0.7.2-bin-all /home/ubuntu/zeppelin
+							SHELL
+						</code></pre>
+					</section>
+				</section>
+
+				<section>
+					<section>
+						<h2>Prepare Vagrant box with Apache Zeppelin/Spark</h2>
+						<div>
+							Create new folder, e.g. <em>ml-spark</em>.
+						</div>
+						<div>
+							Go to that folder.
+						</div>
+						<div>
+							Put downloaded <em>Vagrantfile</em> there.
+						</div>
+						<pre><code class="Bash" data-trim contenteditable>
+							$ mkdir ml-spark
+							$ cd ml-spark
+							$ cp ../_path_/Vagrantfile .
+						</code></pre>
+					</section>
+					<section>
+						<p>
+							(Optionally) update box and remove outdated boxes.
+						</p>
+						<pre><code class="Bash" data-trim contenteditable>
+							$ vagrant box update
+							$ vagrant box prune
+						</code></pre>
+					</section>
+					<section>
+						<p>
+							(Optionally) get <em>zeppelin-0.7.2-bin-all.tgz</em> as distributed during meetup. Put in the Vagrant box folder.
+						</p>
+						<pre><code class="Bash" data-trim contenteditable>
+							$ mv ../_path_/zeppelin-0.7.2-bin-all.tgz .
+						</code></pre>
+						<p>
+							Without this step, the file will be downloaded automatically from Internet during <code>vagrant up</code>, which will take a while (714 MiB).
+						</p>
+					</section>
+					<section>
+						<p>
+							Start Vagrant box and provision with Apache Zeppelin/Spark.
+						</p>
+						<pre><code class="Bash" data-trim contenteditable>
+							$ vagrant up
+
+							Bringing machine 'default' up with 'virtualbox' provider...
+							==> default: Importing base box 'ubuntu/xenial64'...
+							...
+							==> default: Mounting shared folders...
+								default: /vagrant => D:/ML/ml-spark
+							==> default: Running provisioner: shell...
+								default: Running: inline script
+							...
+							==> default: done.
+							==> default: done.
+							==> default: 2017-07-24 18:45:14 URL:http://www-eu.apache.org/dist/zeppelin/zeppelin-0.7.2/zeppelin-0.7.2-bin-all.tgz [749434216/749434216] -> "zeppelin-0.7.2-bin-all.tgz" [1]
+							==> default: 2017-07-24 18:45:15 URL:https://www.apache.org/dist/zeppelin/zeppelin-0.7.2/zeppelin-0.7.2-bin-all.tgz.sha512 [157/157] -> "zeppelin-0.7.2-bin-all.tgz.sha512" [1]
+							==> default: zeppelin-0.7.2-bin-all.tgz: OK
+						</code></pre>
+					</section>
+				</section>
+
+				<section>
+					<h2>Start up Apache Zeppelin</h2>
+					<pre><code class="Bash" data-trim contenteditable>
+						$  vagrant ssh --command "bash /home/ubuntu/zeppelin/bin/zeppelin-daemon.sh start"
+						Log dir doesn't exist, create /home/ubuntu/zeppelin/logs
+						Pid dir doesn't exist, create /home/ubuntu/zeppelin/run
+						Zeppelin start                                             [  OK  ]
+						Connection to 127.0.0.1 closed.
+					</code></pre>
+					<p>
+						Then open Zeppelin at <a href="http://localhost:8080">http://localhost:8080</a>.
+					</p>
+					<p>
+						Also, in above command, replace <code>start</code> with <code>status</code> or <code>stop</code>.
+					</p>
+
+				</section>
+
+				<section>
+					<h2>Zeppelin and Spark</h2>
+					<p>
+						Zeppelin comes with built-in Spark for <em>local mode</em>, ideal for demos/tutorials.
+					</p>
+					<p>
+						You can run <em>Zeppelin Tutorial/Basic Features (Spark)</em>.
+					</p>
+					<p>
+						Once Spark driver started, GUI is at <a href="http://localhost:4040">http://localhost:4040</a>.
+					</p>
+					<p>
+						Details on Zeppelin on <a href="http://zeppelin.apache.org/">Apache Zeppelin homepage</a>.
+					</p>
+				</section>
+
+				<section>
+					<section>
+						<h2>Apache Spark APIs</h2>
+						<p>
+							<a href="http://spark.apache.org/">Apache Spark</a> provides:
+						</p>
+						<ul>
+							<li><a href="http://spark.apache.org/sql/"><em>Normal</em> data operations</a></li>
+							<li><a href="http://spark.apache.org/streaming/">Spark Streaming</a></li>
+							<li><a href="http://spark.apache.org/mllib/">Machine Learning</a></li>
+							<li><a href="http://spark.apache.org/graphx/">Graph Theory</a></li>
+						</ul>
+					</section>
+					<section>
+						<h2>Normal data operation APIs</h2>
+						<p>
+							Spark evolution led to several APIs:
+						</p>
+						<ul>
+							<li><div><details>
+								<summary>RDD (Resilient Distributed Dataset)</summary>
+								<small>This was the first API. It is legacy and used up to Spark 1.6. While deep inside Spark still uses RDDs, as a user you should not have the need to use the RDD API but use DataFrame/Dataset API instead. If you look for general tutorials on Spark, you will often see examples on RDD. Take them only as background learning, and try to learn the new APIs instead. Technically, RDD operations are much slower to execute and more difficult to program as you have to express your logic in mapping operations with lambda functions.</small>
+							</details></div>
+							<div><details>
+								<summary>References</summary>
+								<ul>
+									<li><small><a href="http://spark.apache.org/docs/latest/quick-start.html">spark.apache.org/docs/latest/quick-start.html</a></small></li>
+									<li><small><a href="http://spark.apache.org/docs/latest/programming-guide.html">spark.apache.org/docs/latest/programming-guide.html</a></small></li>
+									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.rdd.RDD">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.rdd.RDD</a></small></li>
+								</ul>
+							</details></div></li>
+							<li><div><details>
+								<summary>DataFrame/Dataset</summary>
+								<small>This is the API I recommend you to learn. There was an API transition from RDD (legacy) to schema RDD (legacy) to DataFrame and finally to Dataset now used since Spark 2.0. Now a DataFrame is just a generic untyped Dataset, as a beginner you can just use the terms interchangeably, details come later. The Dataset/DataFrame is your table (like a table in SQL) and you do all your operations on it (very similar to SQL). For this you need to understand 3 aspects, the Dataset/DataFrame, the Column and functions.</small>
+							</details></div>
+							<div><details>
+							<summary>References</summary>
+								<ul>
+									<li><small><a href="http://spark.apache.org/docs/latest/sql-programming-guide.html">spark.apache.org/docs/latest/sql-programming-guide.html</a></small></li>
+									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Dataset">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Dataset</a></small></li>
+									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.RelationalGroupedDataset">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.RelationalGroupedDataset</a></small></li>
+									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Column">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Column</a></small></li>
+									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$</a></small></li>
+								</ul>
+							</details></div></li>
+						</ul>
+					</section>
+					<section>
+						<h2>Most important for normal data operations</h2>
+						<small>
+							<div>In my experience, you usually do not use any <code>map</code> transformation</div>
+							<div>(like you would do in legacy RDD API), but most often:</div>
+							<ul>
+								<li><em>Dataset</em> operations: <code>withColumn, select, filter/where, join, union, groupBy</code></li>
+								<li><em>RelationalGroupedDataset</em> operations: <code>pivot, agg, count</code></li>
+								<li><em>Column, functions</em>: whatever you need for your formulas.</li>
+							</ul>
+							<p>
+								When you get used to some peculiarities (e.g. test for equality of 2 columns is <code>===</code> instead of <code>==</code> or <code>=</code>), then you can normally just write your formula in a natural way without needing to think much on the underlying concepts of Columns and functions.
+							</p>
+						</small>
+					</section>
+					<section>
+						<h2>Machine learning APIs</h2>
+						<p>
+							For Machine Learning, also a legacy RDD-based API exists (<a href="http://spark.apache.org/docs/latest/mllib-guide.html">spark.mllib</a>).
+						</p>
+						<p>
+							However, main DataFrame-based API is now <a href="http://spark.apache.org/docs/latest/ml-guide.html">spark.ml</a>.
+						</p>
+					</section>
+					<section>
+						<h2>Multi-language support</h2>
+						<p>
+							The Spark API exists for Scala, Java, Python, R.
+						</p>
+						<div>
+						Examples for NaiveBayes classifier API:
+						</div>
+						<ul>
+							<li><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.ml.classification.NaiveBayes">Scala API</a></li>
+							<li><a href="http://spark.apache.org/docs/latest/api/java/index.html?org/apache/spark/ml/classification/NaiveBayes.html">Java API</a></li>
+							<li><a href="http://spark.apache.org/docs/latest/api/python/pyspark.ml.html#pyspark.ml.classification.NaiveBayes">Python API</a></li>
+							<li><a href="http://spark.apache.org/docs/latest/api/R/spark.naiveBayes.html">R API</a></li>
+						</ul>
+					</section>
+				</section>
+
+				<section>
+					<h2>References</h2>
+					<ul>
+					  <li>All the links in this slideset</li>
+					  <li>Online book on Spark 2 that is continuously work in progress; I often find insights here: <a href="https://jaceklaskowski.gitbooks.io/mastering-apache-spark/content/">jaceklaskowski.gitbooks.io/mastering-apache-spark/content/</a></li>
+					</ul>
+				</section>
+				
+				<section>
+					<h2>Prepare Spark ML Tutorial</h2>
+					<div>
+						Put downloaded <em>diamonds.csv</em> to same host folder like <em>Vagrantfile</em>.
+					</div>
+					<pre><code class="Bash" data-trim contenteditable>
+						$ cp ../_path_/diamonds.csv .
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Start Spark ML Tutorial</h2>
+					<p>
+						Inside Zeppelin, click <em>Import note</em> and import the <em>ZeppelinDemoMachineLearningRegression.json</em>.
+					</p>
+					<p>
+						And now it's time to go through the ML tutorial together (demo during meetups).
+					</p>
+				</section>
+
 			</div>
 		</div>
 
@@ -45,5 +389,11 @@
 				]
 			});
 		</script>
+
+		<script>
+		// Shows the slide number using default formatting
+		Reveal.configure({ slideNumber: true });
+		</script>
+
 	</body>
 </html>
