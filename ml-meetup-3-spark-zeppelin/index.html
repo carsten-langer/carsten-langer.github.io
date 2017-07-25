@@ -273,32 +273,32 @@
 							Spark evolution led to several APIs:
 						</p>
 						<ul>
-							<li><div><details>
+							<li><details>
 								<summary>RDD (Resilient Distributed Dataset)</summary>
 								<small>This was the first API. It is legacy and used up to Spark 1.6. While deep inside Spark still uses RDDs, as a user you should not have the need to use the RDD API but use DataFrame/Dataset API instead. If you look for general tutorials on Spark, you will often see examples on RDD. Take them only as background learning, and try to learn the new APIs instead. Technically, RDD operations are much slower to execute and more difficult to program as you have to express your logic in mapping operations with lambda functions.</small>
-							</details></div>
-							<div><details>
+							</details>
+							<details>
 								<summary>References</summary>
-								<ul>
-									<li><small><a href="http://spark.apache.org/docs/latest/quick-start.html">spark.apache.org/docs/latest/quick-start.html</a></small></li>
-									<li><small><a href="http://spark.apache.org/docs/latest/programming-guide.html">spark.apache.org/docs/latest/programming-guide.html</a></small></li>
-									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.rdd.RDD">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.rdd.RDD</a></small></li>
-								</ul>
-							</details></div></li>
-							<li><div><details>
+								<div style="font-size:0.6em;line-height:1.2em"><ul>
+									<li><a href="http://spark.apache.org/docs/latest/quick-start.html">spark.apache.org/docs/latest/quick-start.html</a></li>
+									<li><a href="http://spark.apache.org/docs/latest/rdd-programming-guide.html">spark.apache.org/docs/latest/rdd-programming-guide.html</a></li>
+									<li><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.rdd.RDD">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.rdd.RDD</a></li>
+								</ul></div>
+							</details></li>
+							<li><details>
 								<summary>DataFrame/Dataset</summary>
 								<small>This is the API I recommend you to learn. There was an API transition from RDD (legacy) to schema RDD (legacy) to DataFrame and finally to Dataset now used since Spark 2.0. Now a DataFrame is just a generic untyped Dataset, as a beginner you can just use the terms interchangeably, details come later. The Dataset/DataFrame is your table (like a table in SQL) and you do all your operations on it (very similar to SQL). For this you need to understand 3 aspects, the Dataset/DataFrame, the Column and functions.</small>
-							</details></div>
-							<div><details>
+							</details>
+							<details>
 							<summary>References</summary>
-								<ul>
-									<li><small><a href="http://spark.apache.org/docs/latest/sql-programming-guide.html">spark.apache.org/docs/latest/sql-programming-guide.html</a></small></li>
-									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Dataset">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Dataset</a></small></li>
-									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.RelationalGroupedDataset">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.RelationalGroupedDataset</a></small></li>
-									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Column">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Column</a></small></li>
-									<li><small><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$</a></small></li>
-								</ul>
-							</details></div></li>
+								<div style="font-size:0.6em;line-height:1.2em"><ul>
+									<li><a href="http://spark.apache.org/docs/latest/sql-programming-guide.html">spark.apache.org/docs/latest/sql-programming-guide.html</a></li>
+									<li><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Dataset">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Dataset</a></li>
+									<li><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.RelationalGroupedDataset">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.RelationalGroupedDataset</a></li>
+									<li><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Column">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Column</a></li>
+									<li><a href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$">spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$</a></li>
+								</ul></div>
+							</details></li>
 						</ul>
 					</section>
 					<section>
@@ -381,6 +381,10 @@
 			// - https://github.com/hakimel/reveal.js#configuration
 			// - https://github.com/hakimel/reveal.js#dependencies
 			Reveal.initialize({
+				slideNumber: true,
+				center: false,
+				previewLinks: true,
+
 				dependencies: [
 					{ src: 'plugin/markdown/marked.js' },
 					{ src: 'plugin/markdown/markdown.js' },
@@ -388,11 +392,6 @@
 					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
 				]
 			});
-		</script>
-
-		<script>
-		// Shows the slide number using default formatting
-		Reveal.configure({ slideNumber: true });
 		</script>
 
 	</body>
