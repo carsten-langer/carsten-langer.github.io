@@ -90,7 +90,7 @@
 						<pre><code class="Ruby" data-trim>
 							config.vm.provider "virtualbox" do |vb|
 							  # Set the name in the VirtualBox GUI
-							  vb.name = "ml-spark"
+							  vb.name = "ml-spark_" + (Time.now.strftime "%Y%m%dT%H%M%S")
 							  # Customize the amount of memory on the VM:
 							  vb.memory = "3072"
 							end
